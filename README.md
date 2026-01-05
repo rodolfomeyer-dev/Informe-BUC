@@ -1,73 +1,84 @@
-# Welcome to your Lovable project
+# 📊 Dashboard de Auditoría KPI - Informe BUC
 
-## Project info
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Una plataforma interactiva y moderna diseñada para la validación y auditoría de procesos BUC. Este dashboard permite visualizar métricas clave (KPIs), identificar discrepancias técnicas y analizar datos brutos de manera eficiente.
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## ✨ Características Principales
 
-**Use Lovable**
+- **📈 Resumen Ejecutivo**: Visualización rápida de registros procesados, coincidencias y tasa de eficiencia técnica.
+- **🔍 Detalle de Validación**: Tabla interactiva para inspeccionar cada registro, con estados visuales claros (Éxito/Error).
+- **📊 Módulo KPI / KPA**: Gráficos y tarjetas de métricas para medir la calidad de la anonimización y consistencia de datos.
+- **📄 Datos Brutos**: Acceso completo a la información procesada para auditorías profundas.
+- **🔗 Exportación para Confluence**: Capacidad única de generar un reporte en un solo archivo HTML, optimizado para plataformas de documentación.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🚀 Tecnologías Utilizadas
 
-**Use your preferred IDE**
+- **Frontend**: React 18 con TypeScript.
+- **Estilos**: Tailwind CSS para un diseño responsivo y moderno.
+- **Componentes UI**: Radix UI y Shadcn/UI.
+- **Iconografía**: Lucide React.
+- **Visualización**: Recharts para gráficos dinámicos.
+- **Build Tool**: Vite para un desarrollo ultra rápido.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+---
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## 🛠️ Instalación y Desarrollo Local
 
-Follow these steps:
+Para ejecutar este proyecto en tu máquina local, sigue estos pasos:
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+1. **Clonar el repositorio**:
+   ```bash
+   git clone https://github.com/rodolfomeyer-dev/Informe-BUC.git
+   cd Informe-BUC
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. **Instalar dependencias**:
+   ```bash
+   npm install
+   ```
 
-# Step 3: Install the necessary dependencies.
-npm i
+3. **Iniciar servidor de desarrollo**:
+   ```bash
+   npm run dev
+   ```
+   La aplicación estará disponible en `http://localhost:8080`.
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+---
+
+## 📦 Empaquetado para Confluence
+
+Este proyecto está configurado para generar un archivo HTML **autocontenido** (Single File), ideal para subirlo a Confluence o enviarlo por correo.
+
+### Generar el archivo:
+```bash
+npm run build
 ```
 
-**Edit a file directly in GitHub**
+El resultado se encontrará en:
+`dist/index.html` o en la raíz como `kpi_dashboard_confluence.html`.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Ventajas del formato Single File:
+- ✅ **Sin dependencias externas**: Todos los estilos y scripts están inyectados en el HTML.
+- ✅ **Compatibilidad**: Utiliza `HashRouter` para asegurar que la navegación funcione sin servidor.
+- ✅ **Portabilidad**: Simplemente arrastra y suelta el archivo en cualquier navegador.
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 👤 Autor
 
-## What technologies are used for this project?
+**Rodolfo Meyer**  
+*Desarrollador y Visionario detrás de Informe-BUC.*
 
-This project is built with:
+---
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 📄 Licencia
 
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Este proyecto está bajo la licencia MIT. Siéntete libre de usarlo y mejorarlo.
