@@ -1,0 +1,353 @@
+{
+    "name": "Swagger Payment Service FINAL v1.9",
+    "nodes": [
+        {
+            "parameters": {},
+            "id": "v19_trigger",
+            "name": "When clicking \"Execute Workflow\"",
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [
+                -900,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "fileSelector": "C:\\Users\\Vidata11\\n8n-local\\n8n-data\\RUTS.xlsx"
+            },
+            "id": "v19_read",
+            "name": "Payment_Read_Excel",
+            "type": "n8n-nodes-base.readBinaryFile",
+            "typeVersion": 1,
+            "position": [
+                -750,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "options": {
+                    "headerRow": 0,
+                    "readAs": "string"
+                }
+            },
+            "id": "v19_parse",
+            "name": "Payment_Parse_Excel",
+            "type": "n8n-nodes-base.spreadsheetFile",
+            "typeVersion": 2,
+            "position": [
+                -600,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const res = []; const base = 'http://api.qa.seguros.local/payment-service/v1'; res.push({json:{category:'BANCO',endpointName:'Listar Bancos',url:`${base}/bank`,method:'GET',headerAccept:'text/plain',originalRut:'N/A',policyId:'N/A'}}); res.push({json:{category:'PROVEEDORES',endpointName:'Proveedores Activos',url:`${base}/providers`,method:'GET',headerAccept:'application/json',originalRut:'GENERAL',policyId:'GENERAL'}}); res.push({json:{category:'PROVEEDORES',endpointName:'Enrolamientos OneClick',url:`${base}/providers/oneclick/enrollments`,method:'GET',headerAccept:'application/json',originalRut:'GENERAL',policyId:'GENERAL'}}); const items = $input.all(); for (let i = 0; i < items.length; i++) { const d = items[i].json; let r = '', p = ''; for (const k in d) { const l = k.toLowerCase(); if (l.includes('rut') || l.includes('taxid')) r = d[k]; if (l.includes('poliza') || l.includes('póliza') || l.includes('policy') || l.includes('proposal')) p = d[k]; } if (!r) r = d['1'] || d['RUT']; if (!p) p = d['0'] || d['Número de Propuesta']; const rr = (r || '').toString().trim(); const rp = (p || '').toString().trim(); if (!rr || rr.toLowerCase() === 'rut') continue; const cr = rr.replace(/[\\.\\-]/g, ''); const np = rp.replace(/\\D/g, ''); res.push({json:{category:'PROPUESTAS',endpointName:'Propuesta por Número',url:`${base}/proposal/${np||0}`,method:'GET',headerAccept:'application/json',originalRut:rr,policyId:rp}}); res.push({json:{category:'PROPUESTAS',endpointName:'Pagos Pendientes',url:`${base}/proposal/pending-payments/${cr}`,method:'GET',headerAccept:'application/json',originalRut:rr,policyId:rp}}); res.push({json:{category:'PROPUESTAS',endpointName:'Cliente Primera Prima',url:`${base}/proposal/first-premium-client/${cr}`,method:'GET',headerAccept:'application/json',originalRut:rr,policyId:rp}}); res.push({json:{category:'ESTADOS',endpointName:'Campañas Disponibles',url:`${base}/transaction/campaign`,method:'GET',headerAccept:'application/json',originalRut:'GENERAL',policyId:'GENERAL'}}); res.push({json:{category:'ESTADOS',endpointName:'Validación TC Toku',url:`${base}/transaction/toku/credit-card/${cr}`,method:'GET',headerAccept:'application/json',originalRut:rr,policyId:rp}}); res.push({json:{category:'ESTADOS',endpointName:'Tarjetas Enroladas (Webpay)',url:`${base}/webpay/oneclick/get-cards-enrolled?taxId=${cr}`,method:'GET',headerAccept:'application/json',originalRut:rr,policyId:rp}}); } return res;"
+            },
+            "id": "v19_mapping",
+            "name": "Payment_Mapping",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                -450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const results = [];\nconst items = $input.all();\n\nfor (const item of items) {\n    const data = item.json;\n    try {\n        const response = await this.helpers.request({\n            method: data.method,\n            url: data.url,\n            headers: { 'Accept': data.headerAccept },\n            resolveWithFullResponse: true\n        });\n        results.push({\n            json: {\n                ...data,\n                api_status: response.statusCode,\n                api_body: response.body\n            }\n        });\n    } catch (error) {\n        results.push({\n            json: {\n                ...data,\n                api_status: error.statusCode || 500,\n                api_body: error.message || 'Error desconocido'\n            }\n        });\n    }\n}\nreturn results;"
+            },
+            "id": "v19_atomic_executor",
+            "name": "Payment_Atomic_Executor",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                -250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "dataType": "string",
+                "value1": "={{$json.category}}",
+                "rules": {
+                    "rules": [
+                        {
+                            "value2": "BANCO"
+                        },
+                        {
+                            "value2": "PROPUESTAS",
+                            "output": 1
+                        },
+                        {
+                            "value2": "PROVEEDORES",
+                            "output": 2
+                        },
+                        {
+                            "value2": "ESTADOS",
+                            "output": 3
+                        }
+                    ]
+                }
+            },
+            "id": "v19_switch",
+            "name": "Switch Reportes",
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 1,
+            "position": [
+                0,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "b1",
+                            "name": "Status",
+                            "value": "={{$json.api_status>=200&&$json.api_status<300?'PASS':'FAIL'}}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "b2",
+                            "name": "Validacion",
+                            "value": "={{$json.endpointName}}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "b3",
+                            "name": "URL",
+                            "value": "={{$json.url}}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "b4",
+                            "name": "Respuesta_API",
+                            "value": "={{typeof $json.api_body === 'string' ? $json.api_body : JSON.stringify($json.api_body)}}",
+                            "type": "string"
+                        }
+                    ]
+                }
+            },
+            "id": "v19_rep1",
+            "name": "INFORME 1-BANCO",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.2,
+            "position": [
+                250,
+                100
+            ]
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "p1",
+                            "name": "Status",
+                            "value": "={{$json.api_status>=200&&$json.api_status<300?'PASS':'FAIL'}}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "p2",
+                            "name": "Validacion",
+                            "value": "={{$json.endpointName}}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "p3",
+                            "name": "RUT",
+                            "value": "={{$json.originalRut}}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "p4",
+                            "name": "Propuesta",
+                            "value": "={{$json.policyId}}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "p5",
+                            "name": "Detalle_Falla",
+                            "value": "={{$json.api_status!=200 ? ($json.api_body.message || $json.api_body.glosaRetorno || JSON.stringify($json.api_body)) : 'OK'}}",
+                            "type": "string"
+                        }
+                    ]
+                }
+            },
+            "id": "v19_rep2",
+            "name": "INFORME 2-PROPUESTAS",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.2,
+            "position": [
+                250,
+                250
+            ]
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "pr1",
+                            "name": "Status",
+                            "value": "={{$json.api_status>=200&&$json.api_status<300?'PASS':'FAIL'}}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "pr2",
+                            "name": "Validacion",
+                            "value": "={{$json.endpointName}}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "pr3",
+                            "name": "Resumen_API",
+                            "value": "={{$json.api_status==200 ? 'SUCCESS' : ($json.api_body.message || JSON.stringify($json.api_body))}}",
+                            "type": "string"
+                        }
+                    ]
+                }
+            },
+            "id": "v19_rep3",
+            "name": "INFORME 3-PROVEEDORES",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.2,
+            "position": [
+                250,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "s1",
+                            "name": "Status",
+                            "value": "={{$json.api_status>=200&&$json.api_status<300?'PASS':'FAIL'}}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "s2",
+                            "name": "Validacion",
+                            "value": "={{$json.endpointName}}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "s3",
+                            "name": "RUT",
+                            "value": "={{$json.originalRut}}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "s4",
+                            "name": "Detalle_API",
+                            "value": "={{$json.api_status!=200 ? ($json.api_body.message || JSON.stringify($json.api_body)) : 'OK'}}",
+                            "type": "string"
+                        }
+                    ]
+                }
+            },
+            "id": "v19_rep4",
+            "name": "INFORME 4-ESTADOS",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.2,
+            "position": [
+                250,
+                550
+            ]
+        }
+    ],
+    "connections": {
+        "When clicking \"Execute Workflow\"": {
+            "main": [
+                [
+                    {
+                        "node": "Payment_Read_Excel",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Payment_Read_Excel": {
+            "main": [
+                [
+                    {
+                        "node": "Payment_Parse_Excel",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Payment_Parse_Excel": {
+            "main": [
+                [
+                    {
+                        "node": "Payment_Mapping",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Payment_Mapping": {
+            "main": [
+                [
+                    {
+                        "node": "Payment_Atomic_Executor",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Payment_Atomic_Executor": {
+            "main": [
+                [
+                    {
+                        "node": "Switch Reportes",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Switch Reportes": {
+            "main": [
+                [
+                    {
+                        "node": "INFORME 1-BANCO",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "INFORME 2-PROPUESTAS",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "INFORME 3-PROVEEDORES",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "INFORME 4-ESTADOS",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

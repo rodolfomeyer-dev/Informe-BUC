@@ -1,0 +1,156 @@
+{
+    "name": "Swagger Validator with RUTs (Final)",
+    "nodes": [
+        {
+            "parameters": {
+                "fileSelector": "/home/node/.n8n-files/RUTS.xlsx"
+            },
+            "id": "e6f8510c-352b-4d40-bcb4-374661858908",
+            "name": "Read RUTs File",
+            "type": "n8n-nodes-base.readBinaryFile",
+            "typeVersion": 1,
+            "position": [
+                200,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "options": {
+                    "headerRow": 0,
+                    "readAs": "string"
+                }
+            },
+            "id": "9a0a09e1-678c-4b5c-b17a-8f5667e4e9a0",
+            "name": "Parse Excel",
+            "type": "n8n-nodes-base.spreadsheetFile",
+            "typeVersion": 2,
+            "position": [
+                400,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Definición de los endpoints extraídos del Swagger\nconst endpoints = [\n  { path: '/v1/api/polizas/{rut}', method: 'GET', rutParam: 'rut' },\n  { path: '/v1/api/polizas/detalle/{poliza}/{lineaNegocio}', method: 'GET', policyParam: 'poliza', extraParams: 'lineaNegocio=VI' },\n  { path: '/v1/api/certificate/PensionLiquidation/list/{policyId}/{initialPeriod}/{finalPeriod}', method: 'GET', policyParam: 'policyId', extraParams: 'initialPeriod=202401;finalPeriod=202412' }\n];\n\nconst results = [];\nconst baseUrl = 'http://api-productos.qa.seguros.local';\n\nconst isNumeric = (val) => !isNaN(val) && !isNaN(parseFloat(val));\n\nfor (const item of $input.all()) {\n  // Mapear nuevas columnas\n  let policyId = (item.json['Número de Póliza'] || item.json['0'] || '').toString().trim();\n  let rawRut = (item.json['RUT'] || item.json['1'] || '').toString().trim();\n\n  // Saltar si es vacío o parece un encabezado repetido\n  if (!policyId || !rawRut || policyId === 'Número de Póliza') {\n    continue;\n  }\n\n  // Limpiar RUT (quitar puntos y guiones por seguridad)\n  const rut = rawRut.replace(/[\\.\\-]/g, '');\n\n  for (const ep of endpoints) {\n    // Si el endpoint requiere póliza y ésta tiene letras, lo saltamos por ahora\n    // para evitar el error ORA-01722 (invalid number) en el backend.\n    if (ep.policyParam && !isNumeric(policyId)) {\n       continue;\n    }\n\n    let finalPath = ep.path;\n    \n    if (ep.rutParam) {\n      finalPath = finalPath.replace(`{${ep.rutParam}}`, rut);\n    }\n    if (ep.policyParam) {\n      finalPath = finalPath.replace(`{${ep.policyParam}}`, policyId);\n    }\n    \n    if (ep.extraParams) {\n      ep.extraParams.split(';').forEach(p => {\n        const [k, v] = p.split('=');\n        finalPath = finalPath.replace(`{${k}}`, v);\n      });\n    }\n\n    results.push({\n      json: {\n        originalPolicy: policyId,\n        originalRut: rawRut,\n        cleanedRut: rut,\n        endpoint: ep.path,\n        method: ep.method,\n        url: baseUrl + finalPath,\n        expectedStatus: 200\n      }\n    });\n  }\n}\n\nreturn results;"
+            },
+            "id": "f5d72f1a-6d1e-4c3e-a4c3-6e3e-4e5e4e6f",
+            "name": "Map Endpoints",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                600,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "={{ $json.method }}",
+                "url": "={{ $json.url }}",
+                "options": {
+                    "fullResponse": true
+                }
+            },
+            "id": "h7d8a9b0-c1d2-4e3f-a4b5-c6d7e8f9g0h1",
+            "name": "Execute API Call",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                800,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "res1",
+                            "name": "Status",
+                            "value": "={{ $json.statusCode == 200 ? 'PASS' : 'FAIL' }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "res2",
+                            "name": "Endpoint",
+                            "value": "={{ $node[\"Map Endpoints\"].json[\"endpoint\"] }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "res3",
+                            "name": "URL",
+                            "value": "={{ $node[\"Map Endpoints\"].json[\"url\"] }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "res4",
+                            "name": "Poliza",
+                            "value": "={{ $node[\"Map Endpoints\"].json[\"originalPolicy\"] }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "res5",
+                            "name": "RUT_Limpio",
+                            "value": "={{ $node[\"Map Endpoints\"].json[\"cleanedRut\"] }}",
+                            "type": "string"
+                        }
+                    ]
+                }
+            },
+            "id": "j9k0l1m2-n3o4",
+            "name": "Validation Summary",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.2,
+            "position": [
+                1000,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Read RUTs File": {
+            "main": [
+                [
+                    {
+                        "node": "Parse Excel",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse Excel": {
+            "main": [
+                [
+                    {
+                        "node": "Map Endpoints",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Map Endpoints": {
+            "main": [
+                [
+                    {
+                        "node": "Execute API Call",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Execute API Call": {
+            "main": [
+                [
+                    {
+                        "node": "Validation Summary",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

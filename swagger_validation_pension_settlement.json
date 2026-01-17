@@ -1,0 +1,369 @@
+{
+    "name": "Swagger Pension Settlement FINAL v2.7",
+    "nodes": [
+        {
+            "parameters": {},
+            "id": "node-v2-7-pension-trigger",
+            "name": "When clicking \"Execute Workflow\"",
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [
+                -800,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "return [\n  {\n    json: {\n      testPeriod: \"202501\" // <--- CAMBIA LA FECHA AQUÍ (yyyyMM)\n    }\n  }\n];"
+            },
+            "id": "node-v2-7-pension-config-code",
+            "name": "1. EDITAR FECHA AQUÍ (Doble Clic)",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                -600,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "fileSelector": "C:\\Users\\Vidata11\\n8n-local\\n8n-data\\RUTS.xlsx"
+            },
+            "id": "node-v2-7-pension-read",
+            "name": "Pension_v2_7_Read_Excel",
+            "type": "n8n-nodes-base.readBinaryFile",
+            "typeVersion": 1,
+            "position": [
+                -600,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "options": {
+                    "headerRow": 0,
+                    "readAs": "string"
+                }
+            },
+            "id": "node-v2-7-pension-parse",
+            "name": "Pension_v2_7_Parse_Excel",
+            "type": "n8n-nodes-base.spreadsheetFile",
+            "typeVersion": 2,
+            "position": [
+                -400,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "mode": "multiplex"
+            },
+            "id": "node-v2-7-pension-merge",
+            "name": "Unir Fecha con RUTs",
+            "type": "n8n-nodes-base.merge",
+            "typeVersion": 1,
+            "position": [
+                -200,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const testPeriod = $json.testPeriod || \"202412\";\nconst results = [];\n\nlet rutValue = '';\nlet policyValue = '';\n\nfor (const key in $json) {\n  const lowerKey = key.toLowerCase();\n  if (lowerKey.includes('rut') || lowerKey.includes('taxid')) rutValue = $json[key];\n  if (lowerKey.includes('poliza') || lowerKey.includes('póliza') || lowerKey.includes('policy')) policyValue = $json[key];\n}\n\nif (!rutValue) rutValue = $json['1'] || $json['RUT'];\nif (!policyValue) policyValue = $json['0'] || $json['Número de Póliza'];\n\nconst rawRut = (rutValue || '').toString().trim();\nconst policyId = (policyValue || '').toString().trim();\n\nif (rawRut && rawRut.toLowerCase() !== 'rut') {\n  const rut = rawRut.replace(/[\\.\\-]/g, '');\n  const baseUrl = 'http://api.qa.seguros.local/pension-settlement/settlement';\n\n  // ENDPOINT 1: GET PGU\n  results.push({\n    json: {\n      type: 'GET_PGU',\n      method: 'GET',\n      url: `${baseUrl}/${rut}/${testPeriod}/pgu`,\n      originalRut: rawRut,\n      policyId: policyId\n    }\n  });\n\n  // ENDPOINT 2: POST SETTLEMENT (Con Corregido RV)\n  results.push({\n    json: {\n      type: 'POST_SETTLEMENT',\n      method: 'POST',\n      url: `${baseUrl}/RV/${rut}/${testPeriod}`,\n      body: { companyCode: '01', policyNumber: policyId },\n      originalRut: rawRut,\n      policyId: policyId\n    }\n  });\n\n  // ENDPOINT 3: POST SEND\n  results.push({\n    json: {\n      type: 'POST_SEND',\n      method: 'POST',\n      url: `${baseUrl}/send/${rut}`,\n      originalRut: rawRut,\n      policyId: policyId\n    }\n  });\n}\n\nreturn results;"
+            },
+            "id": "node-v2-7-pension-mapping",
+            "name": "Pension_v2_7_Mapping",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                0,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "dataType": "string",
+                "value1": "={{ $json.type }}",
+                "rules": {
+                    "rules": [
+                        {
+                            "value2": "GET_PGU"
+                        },
+                        {
+                            "value2": "POST_SETTLEMENT",
+                            "output": 1
+                        },
+                        {
+                            "value2": "POST_SEND",
+                            "output": 2
+                        }
+                    ]
+                }
+            },
+            "id": "node-v2-7-pension-switch",
+            "name": "Pension_v2_7_Switch",
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 1,
+            "position": [
+                200,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "={{ $json.url }}",
+                "options": {
+                    "fullResponse": true
+                }
+            },
+            "id": "node-v2-7-pension-exec-get",
+            "name": "Exec_GET_PGU",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                450,
+                150
+            ],
+            "onError": "continue",
+            "continueOnFail": true,
+            "settings": {
+                "errorHandling": "continue",
+                "alwaysOutputData": true
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{ $json.url }}",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify($json.body) }}",
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "options": {
+                    "fullResponse": true
+                }
+            },
+            "id": "node-v2-7-pension-exec-post-body",
+            "name": "Exec_POST_Settlement",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                450,
+                300
+            ],
+            "onError": "continue",
+            "continueOnFail": true,
+            "settings": {
+                "errorHandling": "continue",
+                "alwaysOutputData": true
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{ $json.url }}",
+                "options": {
+                    "fullResponse": true
+                }
+            },
+            "id": "node-v2-7-pension-exec-post-empty",
+            "name": "Exec_POST_Send",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                450,
+                450
+            ],
+            "onError": "continue",
+            "continueOnFail": true,
+            "settings": {
+                "errorHandling": "continue",
+                "alwaysOutputData": true
+            }
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "res1",
+                            "name": "Status",
+                            "value": "={{ ($json.statusCode >= 200 && $json.statusCode < 300) ? 'PASS' : 'FAIL' }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "res2",
+                            "name": "Endpoint_Tipo",
+                            "value": "={{ $node[\"Pension_v2_7_Mapping\"].json[\"type\"] }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "res4",
+                            "name": "RUT",
+                            "value": "={{ $node[\"Pension_v2_7_Mapping\"].json[\"originalRut\"] }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "res3",
+                            "name": "URL_Consultada",
+                            "value": "={{ $node[\"Pension_v2_7_Mapping\"].json[\"url\"] }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "res6",
+                            "name": "Resultado_API",
+                            "value": "={{ $json.statusCode ? ($json.statusCode != 200 ? ($json.body.glosaRetorno || $json.body.message || $json.body.error || $json.body.title || JSON.stringify($json.body)) : 'OK') : ($json.message || 'Error Desconocido') }}",
+                            "type": "string"
+                        }
+                    ]
+                }
+            },
+            "id": "node-v2-7-pension-report",
+            "name": "Pension_v2_7_Reporting",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.2,
+            "position": [
+                750,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "When clicking \"Execute Workflow\"": {
+            "main": [
+                [
+                    {
+                        "node": "1. EDITAR FECHA AQUÍ (Doble Clic)",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Pension_v2_7_Read_Excel",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "1. EDITAR FECHA AQUÍ (Doble Clic)": {
+            "main": [
+                [
+                    {
+                        "node": "Unir Fecha con RUTs",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Pension_v2_7_Read_Excel": {
+            "main": [
+                [
+                    {
+                        "node": "Pension_v2_7_Parse_Excel",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Pension_v2_7_Parse_Excel": {
+            "main": [
+                [
+                    {
+                        "node": "Unir Fecha con RUTs",
+                        "type": "main",
+                        "index": 1
+                    }
+                ]
+            ]
+        },
+        "Unir Fecha con RUTs": {
+            "main": [
+                [
+                    {
+                        "node": "Pension_v2_7_Mapping",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Pension_v2_7_Mapping": {
+            "main": [
+                [
+                    {
+                        "node": "Pension_v2_7_Switch",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Pension_v2_7_Switch": {
+            "main": [
+                [
+                    {
+                        "node": "Exec_GET_PGU",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Exec_POST_Settlement",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Exec_POST_Send",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Exec_GET_PGU": {
+            "main": [
+                [
+                    {
+                        "node": "Pension_v2_7_Reporting",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Exec_POST_Settlement": {
+            "main": [
+                [
+                    {
+                        "node": "Pension_v2_7_Reporting",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Exec_POST_Send": {
+            "main": [
+                [
+                    {
+                        "node": "Pension_v2_7_Reporting",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

@@ -50,6 +50,6 @@ Archivos de configuración para la plataforma de automatización n8n. Cada flujo
 ## � Proceso de Auditoría
 
 1. **Actualización de Swaggers**: Asegurar que los archivos en `docker/` reflejen la última versión de QA.
-2. **Configuración de Datos**: Cargar el Excel con los RUTs y Pólizas a validar en la ruta `/home/node/.n8n-files/RUTS.xlsx` del servidor n8n.
+2. **Configuración de Datos**: Asegurar que el archivo Excel con los RUTs y Pólizas a validar esté disponible en la ruta especificada en los flujos (ej: `C:\Users\Vidata11\n8n-local\n8n-data\RUTS.xlsx`).
 3. **Ejecución de Flujos**: Importar y ejecutar los archivos `.json` en n8n.
 4. **Análisis de Resultados**: Revisar los informes generados por los nodos de "Reporting" o "Summary" dentro de cada workflow.
