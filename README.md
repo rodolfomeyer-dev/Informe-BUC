@@ -7,6 +7,9 @@
 
 Una plataforma interactiva y moderna diseñada para la validación y auditoría de procesos BUC. Este dashboard permite visualizar métricas clave (KPIs), identificar discrepancias técnicas y analizar datos brutos de manera eficiente.
 
+> [!TIP]
+> Para una guía técnica detallada y estructura completa del proyecto, consulta la [Documentación Completa](DOCUMENTATION.md).
+
 ---
 
 ## ✨ Características Principales
