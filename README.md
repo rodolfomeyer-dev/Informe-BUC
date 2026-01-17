@@ -1,14 +1,18 @@
-# 📊 Dashboard de Auditoría KPI - Informe BUC
+# 📊 Validación de APIs BUC - Auditoría Técnica
 
-![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
-![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+Este proyecto está dedicado a la validación y gestión de definiciones Swagger para los servicios core de BUC, permitiendo la auditoría automatizada de integraciones críticas.
 
-Una plataforma interactiva y moderna diseñada para la validación y auditoría de procesos BUC. Este dashboard permite visualizar métricas clave (KPIs), identificar discrepancias técnicas y analizar datos brutos de manera eficiente.
+---
 
-> [!TIP]
-> Para una guía técnica detallada y estructura completa del proyecto, consulta la [Documentación Completa](DOCUMENTATION.md).
+## 🎯 Objetivo
+Automatizar las pruebas de humo y regresión de las siguientes APIs en ambiente QA:
+- **API Productos**
+- **API Clientes**
+- **Pensión Settlement**
+- **Payment Service**
+
+## 📄 Documentación Completa
+Para detalles técnicos sobre los flujos de validación n8n y el mapeo de endpoints, consulta la [Documentación de APIs](DOCUMENTATION.md).
 
 ---
 

@@ -1,89 +1,55 @@
-# Documentación Detallada del Proyecto: Dashboard de Auditoría KPI - BUC
+# Documentación Técnica: Validación de APIs BUC
 
-## 📌 Visión General
-Este proyecto es una herramienta avanzada de visualización y auditoría diseñada para validar los procesos de anonimización y consistencia de datos en el sistema **BUC (Búsqueda Unificada de Clientes)**. Proporciona una interfaz ejecutiva y técnica para analizar los resultados de las pruebas de regresión y validación de APIs.
-
----
-
-## 🏗️ Arquitectura Técnica
-El dashboard está construido sobre un stack moderno que prioriza la velocidad de desarrollo y la portabilidad:
-
-- **Frontend**: [React 18](https://reactjs.org/) con [TypeScript](https://www.typescriptlang.org/).
-- **Bundler**: [Vite](https://vitejs.dev/) (configurado para salida de archivo único).
-- **Estilos**: [Tailwind CSS](https://tailwindcss.com/) para diseño responsivo.
-- **Componentes**: [Shadcn UI](https://ui.shadcn.com/) y [Radix UI](https://www.radix-ui.com/).
-- **Gráficos**: [Recharts](https://recharts.org/).
-- **Enrutamiento**: `HashRouter` (para compatibilidad con archivos locales y Confluence).
+## 🎯 Objetivo del Proyecto
+Este proyecto tiene como propósito central la **auditoría y validación automatizada** de las APIs核心 del ecosistema BUC (Búsqueda Unificada de Clientes). Utiliza definiciones Swagger y flujos de n8n para garantizar la consistencia de los datos entre ambientes anonimizados y no anonimizados.
 
 ---
 
-## 📂 Estructura de Archivos
+## � APIs Monitoreadas
 
-### 📁 Raíz del Proyecto
-- `extract_endpoints.py`: Script Python que extrae rutas y parámetros de archivos Swagger JSON y los exporta a CSV.
-- `kpi_dashboard_confluence.html`: Versión empaquetada y autocontenida del dashboard para distribución.
-- `swagger*.json`: Archivos de definición de API que sirven como base para la validación.
-- `docker/`: Carpeta de respaldo que contiene las definiciones Swagger del proyecto.
-- `endpoints_*.csv`: Archivos generados por el script de extracción.
+El sistema valida activamente los siguientes servicios en el ambiente de QA:
 
-### 📁 `src/` (Código Fuente)
-- `App.tsx`: Punto de entrada de la aplicación y configuración de rutas.
-- `data/auditData.ts`: **Motor de datos**. Contiene la lógica de generación y almacenamiento de los 500 registros de auditoría que alimentan el dashboard.
-- `components/dashboard/`: Componentes modulares de la interfaz:
-  - `KPITab.tsx`: Visualizaciones de métricas, distribución de entidades y plan de acción.
-  - `SummaryTab.tsx`: Resumen ejecutivo de alto nivel.
-  - `ValidationTable.tsx`: Tabla interactiva con búsqueda y filtrado de registros.
-  - `RawDataTab.tsx`: Vista técnica de los datos en formato lista.
-- `components/ui/`: Componentes base del sistema de diseño (botones, tarjetas, tablas, etc.).
+### 1. API Productos
+- **Documentación**: [Swagger Productos](http://api-productos.qa.seguros.local/swagger/index.html?urls.primaryName=1.0)
+- **Definición Local**: `swagger.json`, `swagger_v1_latest.json`
+- **Validador**: `swagger_validation_v1_comprehensive.json`
 
----
+### 2. API Clientes
+- **Documentación**: [Swagger Clientes](http://api-clientes.qa.seguros.local/swagger/index.html)
+- **Definición Local**: `swagger_clientes.json`
+- **Validador**: `swagger_validation_clientes.json`
 
-## 📊 Modelo de Datos
-La auditoría se centra en la interfaz `AuditRecord`:
+### 3. Pensión Settlement
+- **Documentación**: [Swagger Pension Settlement](http://api.qa.seguros.local/pension-settlement/swagger/index.html)
+- **Definición Local**: `swagger_pension_settlement.json`
+- **Validador**: `swagger_validation_pension_settlement.json`
 
-```typescript
-interface AuditRecord {
-  rut: string;
-  nombreOriginal: string;
-  nombreEnmascarado: string;
-  devueltoNoAnon: string; // Respuesta de API NO Anonimizada
-  devueltoAnon: string;   // Respuesta de API Anonimizada
-  rutMatchNoAnon: boolean;
-  rutMatchAnon: boolean;
-  resultadoFinal: "OK" | "ERROR: datos inconsistentes";
-}
-```
+### 4. Payment Service
+- **Documentación**: [Swagger Payment Service](http://api.qa.seguros.local/payment-service/swagger/index.html?urls.primaryName=1.0)
+- **Validador**: `swagger_validation_payment_service.json`
 
 ---
 
-## 🔄 Flujo de Trabajo (Workflow)
+## �️ Componentes de Validación
 
-1. **Definición de API**: Se mantienen los archivos Swagger actualizados en la raíz o en `docker/`.
-2. **Generación de Plantillas**: Se ejecuta `extract_endpoints.py` para obtener los CSV de pruebas.
-3. **Carga de Datos**: Los resultados de las pruebas se integran en `src/data/auditData.ts`.
-4. **Construcción**: Se ejecuta `npm run build` para generar el reporte final.
-5. **Distribución**: El archivo `kpi_dashboard_confluence.html` se sube a Confluence para revisión de los stakeholders.
+### Definiciones Swagger (Carpeta `docker/`)
+Contiene los archivos JSON que describen la estructura, endpoints y parámetros de cada API. Estos archivos sirven de "contrato" para las pruebas.
 
----
+### Workflows de n8n (`swagger_validation_*.json`)
+Archivos de configuración para la plataforma de automatización n8n. Cada flujo realiza las siguientes tareas:
+1. **Consumo de Datos**: Lee un archivo Excel (`RUTS.xlsx`) con datos de prueba.
+2. **Mapeo Dinámico**: Construye las URLs de consulta reemplazando RUTs y Pólizas en las rutas definidas en el Swagger.
+3. **Ejecución**: Realiza peticiones HTTP a los servicios en QA.
+4. **Resumen**: Determina el estado `PASS` o `FAIL` basándose en el código de respuesta y la integridad del cuerpo del mensaje.
 
-## 📦 Empaquetado Especial (Single File)
-Para garantizar que el dashboard funcione dentro de entornos restringidos como Confluence, el proyecto utiliza el plugin `vite-plugin-singlefile`. Esto inyecta:
-- Todo el CSS directamente en etiquetas `<style>`.
-- Todo el JavaScript compilado en etiquetas `<script>`.
-- Todos los assets (imágenes, fuentes) como Base64.
-
----
-
-## 🚀 Comandos Útiles
-
-| Comando | Descripción |
-|---------|-------------|
-| `npm run dev` | Inicia el entorno de desarrollo en `localhost:8080`. |
-| `npm run build` | Genera el archivo HTML autocontenido para producción. |
-| `python extract_endpoints.py` | Genera el CSV de endpoints desde el Swagger. |
+### Scripts de Soporte
+- `extract_endpoints.py`: Utilidad en Python para extraer rápidamente la lista de rutas y parámetros desde un archivo Swagger (.json) a un formato CSV legible y editable.
 
 ---
 
-## 🔐 Respaldos y Git
-- **Repositorio Principal**: `rodolfomeyer-dev/Informe-BUC`
-- **Repositorio de APIs (Swagger)**: `rodolfomeyer-dev/BUC_APIS` (Backup automático de la carpeta `docker/`).
+## � Proceso de Auditoría
+
+1. **Actualización de Swaggers**: Asegurar que los archivos en `docker/` reflejen la última versión de QA.
+2. **Configuración de Datos**: Cargar el Excel con los RUTs y Pólizas a validar en la ruta `/home/node/.n8n-files/RUTS.xlsx` del servidor n8n.
+3. **Ejecución de Flujos**: Importar y ejecutar los archivos `.json` en n8n.
+4. **Análisis de Resultados**: Revisar los informes generados por los nodos de "Reporting" o "Summary" dentro de cada workflow.
